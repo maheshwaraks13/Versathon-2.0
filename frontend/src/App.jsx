@@ -6,8 +6,10 @@ import ResultsDisplay from './components/ResultsDisplay';
 import HealthHistory from './components/HealthHistory';
 import AuthModal from './components/AuthModal';
 import { AuthProvider } from './context/AuthContext';
+import { LanguageProvider, useLanguage } from './context/LanguageContext';
 
 function MedClearApp() {
+  const { language, t } = useLanguage();
   const [activeTab, setActiveTab] = useState('analyze'); // 'analyze' | 'history'
   const [reportText, setReportText] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -33,13 +35,14 @@ function MedClearApp() {
 
     console.log('====================================');
     console.log('[MedClear] Sending report for LLM extraction...');
+    console.log('[MedClear] Selected language:', language);
     console.log('====================================');
 
     try {
       const response = await fetch('http://localhost:5000/api/reports/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: textToAnalyze })
+        body: JSON.stringify({ text: textToAnalyze, language })
       });
 
       const data = await response.json();
@@ -62,15 +65,15 @@ function MedClearApp() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col selection:bg-teal-500 selection:text-slate-950">
-      {/* Top Application Header */}
+    <div className="min-h-screen bg-[#F7FAFB] text-[#2C3E42] flex flex-col selection:bg-[#6FA9A3] selection:text-white font-sans">
+      {/* Application Header with tab navigation */}
       <Header
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         onOpenAuth={handleOpenAuth}
       />
 
-      <main className="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+      <main className="flex-1 max-w-4xl w-full mx-auto px-4 sm:px-6 py-8 space-y-6">
         {activeTab === 'analyze' ? (
           <>
             {/* 1. Persistent Disclaimer Banner */}
@@ -84,7 +87,7 @@ function MedClearApp() {
               isAnalyzing={isAnalyzing}
             />
 
-            {/* 3. Extracted Results Display Card Grid with Save to History & PDF Export */}
+            {/* 3. Extracted Results Display Cards with Save to History & PDF Export */}
             <ResultsDisplay
               results={extractedResults}
               reportDate={reportDate}
@@ -112,8 +115,8 @@ function MedClearApp() {
         message={authModalMessage}
       />
 
-      <footer className="border-t border-slate-900 bg-slate-950/80 py-6 text-center text-xs text-slate-500">
-        <p>MedClear — AI-Powered Medical Lab Report Simplifier & Health History Tracker. Educational tool only.</p>
+      <footer className="border-t border-[#E8EEF0] bg-[#F0F4F6] py-6 text-center text-xs text-[#6C8287]">
+        <p>{t('footer')}</p>
       </footer>
     </div>
   );
@@ -121,8 +124,10 @@ function MedClearApp() {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <MedClearApp />
-    </AuthProvider>
+    <LanguageProvider>
+      <AuthProvider>
+        <MedClearApp />
+      </AuthProvider>
+    </LanguageProvider>
   );
 }

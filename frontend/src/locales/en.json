@@ -1,0 +1,100 @@
+{
+  "appName": "MedClear",
+  "appTagline": "Plain-language medical report translation",
+  "nav": {
+    "analyzeReport": "Analyze Report",
+    "healthHistory": "Health History & Trends"
+  },
+  "auth": {
+    "tryDemo": "Try Demo",
+    "signIn": "Sign In",
+    "signOut": "Sign Out"
+  },
+  "disclaimer": {
+    "heading": "Medical Disclaimer",
+    "body": "MedClear explains lab values in plain language for educational understanding. This tool does not diagnose medical conditions and does not recommend treatment. Always consult a qualified healthcare provider regarding your health or lab results."
+  },
+  "input": {
+    "heading": "Input medical report",
+    "subheading": "Choose to paste text or upload an image/PDF lab scan",
+    "tabPasteText": "Paste Text",
+    "tabUpload": "Upload Image/PDF",
+    "pasteHint": "Paste raw lab text below:",
+    "samplesLabel": "Samples:",
+    "placeholder": "Paste lab report content here (for example: Hemoglobin 11.2 g/dL, WBC 14.5 x10^3/uL)...",
+    "charactersEntered": "{count} characters entered",
+    "readyForInput": "Ready for input",
+    "analyzeButton": "Analyze medical report",
+    "analyzingButton": "Processing report..."
+  },
+  "upload": {
+    "dragDrop": "Drag & drop your lab report image or PDF here",
+    "orBrowse": "or browse to select a file",
+    "supportedFormats": "Supported: JPG, PNG, PDF",
+    "selectFile": "Select File",
+    "changeFile": "Change file",
+    "analyzeButton": "Analyze uploaded report",
+    "analyzingButton": "Processing...",
+    "extractingText": "Extracting text from file...",
+    "qualityWarning": "Low image quality detected — results may be less accurate",
+    "editExtracted": "Edit extracted text before analysis:",
+    "fallbackNote": "Note: The offline fallback parser provides English-only explanations."
+  },
+  "results": {
+    "heading": "Extracted lab results",
+    "testsFound": "{count} tests found",
+    "reportDate": "Report date: {date}",
+    "flaggedValues": "{count} flagged value",
+    "flaggedValuesPlural": "{count} flagged values",
+    "saveReport": "Save this report",
+    "savingReport": "Saving report...",
+    "savedToHistory": "Saved to history",
+    "viewTrends": "View health trends",
+    "downloadSummary": "Download summary",
+    "generating": "Generating...",
+    "resultValue": "Result value",
+    "referenceRange": "Reference range",
+    "notSpecified": "Not specified",
+    "explanation": "Explanation",
+    "rawJson": "Raw JSON payload ({count} items)",
+    "status": {
+      "high": "High",
+      "low": "Low",
+      "normal": "Normal",
+      "unknown": "Unspecified"
+    },
+    "loading": {
+      "heading": "Extracting lab results",
+      "subheading": "Parsing test values, reference ranges, and generating plain-language explanations."
+    },
+    "empty": "Results will appear here after clicking Analyze medical report.",
+    "error": {
+      "heading": "Extraction error",
+      "hint": "Please check your medical report input or verify backend API key configuration."
+    },
+    "disclaimer": {
+      "heading": "Educational Disclaimer:",
+      "body": "Explanations below describe what tests measure in plain language. They do not constitute a medical diagnosis or treatment plan. Always consult your doctor regarding lab results."
+    },
+    "saveError": "Failed to save report. Please try again.",
+    "requireAuth": "Please sign in to save this analyzed report to your private history."
+  },
+  "history": {
+    "heading": "Health History & Trends"
+  },
+  "footer": "MedClear • Patient-First Lab Report Translation & History. Educational tool only.",
+  "pdf": {
+    "title": "MedClear — Medical Lab Report Summary",
+    "reportDate": "Report Date: {date}",
+    "generated": "Generated: {date}",
+    "disclaimerHeading": "MEDICAL DISCLAIMER",
+    "disclaimerBody": "MedClear is an educational tool designed to translate lab values into plain language. This summary DOES NOT constitute a medical diagnosis, clinical opinion, or treatment plan. Always consult a qualified healthcare provider regarding any health condition or lab results.",
+    "sectionTitle": "Extracted Test Results & Explanations",
+    "resultValue": "Result value:",
+    "referenceRange": "Reference range:",
+    "notSpecified": "Not specified",
+    "explanation": "Explanation: {text}",
+    "noExplanation": "No explanation available.",
+    "footer": "MedClear Educational Summary — Not a Medical Diagnosis"
+  }
+}

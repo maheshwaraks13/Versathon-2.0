@@ -6,15 +6,19 @@ import { extractReportWithLLM } from '../services/llmService.js';
  */
 export const analyzeReport = async (req, res) => {
   try {
-    const { text } = req.body;
+    const { text, language } = req.body;
     if (!text || !text.trim()) {
       return res.status(400).json({ error: 'Medical report text is required' });
     }
 
-    console.log('[API] Analyzing medical report text length:', text.length);
+    // Sanitize language code — only allow known codes, default to 'en'
+    const VALID_LANGS = ['en', 'hi', 'ta', 'te', 'es', 'fr'];
+    const lang = VALID_LANGS.includes(language) ? language : 'en';
 
-    // Call LLM extraction service
-    const extractedData = await extractReportWithLLM(text);
+    console.log('[API] Analyzing medical report text length:', text.length, '| Language:', lang);
+
+    // Call LLM extraction service with language
+    const extractedData = await extractReportWithLLM(text, lang);
 
     return res.status(200).json({
       success: true,

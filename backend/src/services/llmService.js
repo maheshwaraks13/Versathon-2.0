@@ -4,7 +4,25 @@ console.log('Claude key loaded:', !!process.env.ANTHROPIC_API_KEY);
 /**
  * System prompt enforcing strict medical extraction boundaries, plain-language explanations, and JSON output
  */
-const SYSTEM_PROMPT = `You are a specialized medical lab report parsing assistant.
+/**
+ * Build the system prompt, optionally injecting a language instruction.
+ * The explanation field is always generated in the target language by the LLM itself.
+ */
+function buildSystemPrompt(language = 'en') {
+  const LANGUAGE_NAMES = {
+    en: 'English',
+    hi: 'Hindi',
+    ta: 'Tamil',
+    te: 'Telugu',
+    es: 'Spanish',
+    fr: 'French'
+  };
+  const langName = LANGUAGE_NAMES[language] || 'English';
+  const langInstruction = langName !== 'English'
+    ? `\n9. IMPORTANT: Write ALL "explanation" field values in ${langName}. Keep test names, values, units, and reference ranges in their original form — only translate the plain-language explanation sentences.`
+    : '';
+
+  return `You are a specialized medical lab report parsing assistant.
 Your task is to extract test results from the provided medical report text and provide a short, plain-language explanation for each test in a clean structured JSON format.
 
 HARD CONSTRAINTS & RULES:
@@ -36,16 +54,19 @@ HARD CONSTRAINTS & RULES:
       "explanation": string | null
     }
   ]
-}
+}${langInstruction}
 
 DO NOT include markdown code blocks, backticks, preambles, notes, or explanations outside the raw JSON object.`;
+}
 
 /**
  * Helper to call Claude API (Anthropic)
  */
-async function callClaudeAPI(reportText, extraPrompt = '') {
+async function callClaudeAPI(reportText, extraPrompt = '', language = 'en') {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) throw new Error('ANTHROPIC_API_KEY is not set');
+
+  const systemPrompt = buildSystemPrompt(language);
 
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -57,7 +78,7 @@ async function callClaudeAPI(reportText, extraPrompt = '') {
     body: JSON.stringify({
       model: 'claude-3-5-sonnet-20241022',
       max_tokens: 2500,
-      system: SYSTEM_PROMPT,
+      system: systemPrompt,
       messages: [
         {
           role: 'user',
@@ -79,9 +100,11 @@ async function callClaudeAPI(reportText, extraPrompt = '') {
 /**
  * Helper to call OpenAI API (GPT-4o / GPT-4o-mini)
  */
-async function callOpenAIAPI(reportText, extraPrompt = '') {
+async function callOpenAIAPI(reportText, extraPrompt = '', language = 'en') {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) throw new Error('OPENAI_API_KEY is not set');
+
+  const systemPrompt = buildSystemPrompt(language);
 
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
@@ -92,7 +115,7 @@ async function callOpenAIAPI(reportText, extraPrompt = '') {
     body: JSON.stringify({
       model: 'gpt-4o-mini',
       messages: [
-        { role: 'system', content: SYSTEM_PROMPT },
+        { role: 'system', content: systemPrompt },
         {
           role: 'user',
           content: `${extraPrompt ? extraPrompt + '\n\n' : ''}Extract test results and explanations from this medical report:\n\n${reportText}`
@@ -114,10 +137,11 @@ async function callOpenAIAPI(reportText, extraPrompt = '') {
 /**
  * Helper to call Gemini API
  */
-async function callGeminiAPI(reportText, extraPrompt = '') {
+async function callGeminiAPI(reportText, extraPrompt = '', language = 'en') {
   const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
   if (!apiKey) throw new Error('GEMINI_API_KEY is not set');
 
+  const systemPrompt = buildSystemPrompt(language);
   const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
   const response = await fetch(url, {
     method: 'POST',
@@ -126,7 +150,7 @@ async function callGeminiAPI(reportText, extraPrompt = '') {
       contents: [
         {
           parts: [
-            { text: `${SYSTEM_PROMPT}\n\n${extraPrompt ? extraPrompt + '\n\n' : ''}Report to extract:\n${reportText}` }
+            { text: `${systemPrompt}\n\n${extraPrompt ? extraPrompt + '\n\n' : ''}Report to extract:\n${reportText}` }
           ]
         }
       ],
@@ -303,23 +327,25 @@ function validateExtractedReport(data) {
 /**
  * Main service method: call LLM API with single retry on JSON parse failure
  */
-export async function extractReportWithLLM(reportText) {
+export async function extractReportWithLLM(reportText, language = 'en') {
   const provider = (process.env.LLM_PROVIDER || '').toLowerCase();
   const hasClaude = !!process.env.ANTHROPIC_API_KEY;
   const hasOpenAI = !!process.env.OPENAI_API_KEY;
   const hasGemini = !!process.env.GEMINI_API_KEY || !!process.env.GOOGLE_API_KEY;
 
+  console.log(`[LLM Service] Language requested: ${language}`);
+
   async function invokeModel(extraPrompt = '') {
     if (provider === 'claude' || (hasClaude && !provider)) {
-      return await callClaudeAPI(reportText, extraPrompt);
+      return await callClaudeAPI(reportText, extraPrompt, language);
     } else if (provider === 'openai' || (hasOpenAI && !provider)) {
-      return await callOpenAIAPI(reportText, extraPrompt);
+      return await callOpenAIAPI(reportText, extraPrompt, language);
     } else if (provider === 'gemini' || (hasGemini && !provider)) {
-      return await callGeminiAPI(reportText, extraPrompt);
+      return await callGeminiAPI(reportText, extraPrompt, language);
     } else if (hasClaude) {
-      return await callClaudeAPI(reportText, extraPrompt);
+      return await callClaudeAPI(reportText, extraPrompt, language);
     } else if (hasOpenAI) {
-      return await callOpenAIAPI(reportText, extraPrompt);
+      return await callOpenAIAPI(reportText, extraPrompt, language);
     } else {
       return fallbackRuleParser(reportText);
     }

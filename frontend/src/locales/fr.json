@@ -1,0 +1,100 @@
+{
+  "appName": "MedClear",
+  "appTagline": "Traduction de rapport médical en langage simple",
+  "nav": {
+    "analyzeReport": "Analyser le rapport",
+    "healthHistory": "Historique de santé & tendances"
+  },
+  "auth": {
+    "tryDemo": "Essayer la démo",
+    "signIn": "Se connecter",
+    "signOut": "Se déconnecter"
+  },
+  "disclaimer": {
+    "heading": "Avertissement médical",
+    "body": "MedClear explique les valeurs de laboratoire en langage simple à des fins éducatives. Cet outil ne diagnostique pas les conditions médicales et ne recommande pas de traitement. Consultez toujours un professionnel de santé qualifié concernant votre santé ou vos résultats de laboratoire."
+  },
+  "input": {
+    "heading": "Saisir le rapport médical",
+    "subheading": "Choisissez de coller du texte ou de télécharger une image/PDF du laboratoire",
+    "tabPasteText": "Coller du texte",
+    "tabUpload": "Télécharger image/PDF",
+    "pasteHint": "Collez le texte brut du laboratoire ci-dessous :",
+    "samplesLabel": "Exemples :",
+    "placeholder": "Collez le contenu du rapport de laboratoire ici (ex : Hémoglobine 11,2 g/dL, WBC 14,5 x10^3/uL)...",
+    "charactersEntered": "{count} caractères saisis",
+    "readyForInput": "Prêt pour la saisie",
+    "analyzeButton": "Analyser le rapport médical",
+    "analyzingButton": "Traitement du rapport..."
+  },
+  "upload": {
+    "dragDrop": "Glissez-déposez votre image ou PDF du rapport de laboratoire ici",
+    "orBrowse": "ou parcourez pour sélectionner un fichier",
+    "supportedFormats": "Formats : JPG, PNG, PDF",
+    "selectFile": "Sélectionner un fichier",
+    "changeFile": "Changer de fichier",
+    "analyzeButton": "Analyser le rapport téléchargé",
+    "analyzingButton": "Traitement en cours...",
+    "extractingText": "Extraction du texte du fichier...",
+    "qualityWarning": "Faible qualité d'image détectée — les résultats peuvent être moins précis",
+    "editExtracted": "Modifiez le texte extrait avant l'analyse :",
+    "fallbackNote": "Remarque : L'analyseur hors ligne fournit des explications en anglais uniquement."
+  },
+  "results": {
+    "heading": "Résultats de laboratoire extraits",
+    "testsFound": "{count} tests trouvés",
+    "reportDate": "Date du rapport : {date}",
+    "flaggedValues": "{count} valeur signalée",
+    "flaggedValuesPlural": "{count} valeurs signalées",
+    "saveReport": "Enregistrer ce rapport",
+    "savingReport": "Enregistrement du rapport...",
+    "savedToHistory": "Enregistré dans l'historique",
+    "viewTrends": "Voir les tendances de santé",
+    "downloadSummary": "Télécharger le résumé",
+    "generating": "Génération en cours...",
+    "resultValue": "Valeur du résultat",
+    "referenceRange": "Plage de référence",
+    "notSpecified": "Non spécifié",
+    "explanation": "Explication",
+    "rawJson": "Données JSON brutes ({count} éléments)",
+    "status": {
+      "high": "Élevé",
+      "low": "Faible",
+      "normal": "Normal",
+      "unknown": "Non spécifié"
+    },
+    "loading": {
+      "heading": "Extraction des résultats de laboratoire",
+      "subheading": "Analyse des valeurs de test, des plages de référence et génération d'explications en langage simple."
+    },
+    "empty": "Les résultats apparaîtront ici après avoir cliqué sur Analyser le rapport médical.",
+    "error": {
+      "heading": "Erreur d'extraction",
+      "hint": "Vérifiez l'entrée de votre rapport médical ou la configuration de la clé API du serveur."
+    },
+    "disclaimer": {
+      "heading": "Avertissement éducatif :",
+      "body": "Les explications ci-dessous décrivent ce que mesurent les tests en langage simple. Elles ne constituent pas un diagnostic médical ou un plan de traitement. Consultez toujours votre médecin concernant les résultats de laboratoire."
+    },
+    "saveError": "Échec de l'enregistrement du rapport. Veuillez réessayer.",
+    "requireAuth": "Veuillez vous connecter pour enregistrer ce rapport analysé dans votre historique privé."
+  },
+  "history": {
+    "heading": "Historique de santé & tendances"
+  },
+  "footer": "MedClear • Traduction de rapport de laboratoire centrée sur le patient & historique. Outil éducatif uniquement.",
+  "pdf": {
+    "title": "MedClear — Résumé du rapport de laboratoire médical",
+    "reportDate": "Date du rapport : {date}",
+    "generated": "Généré : {date}",
+    "disclaimerHeading": "AVERTISSEMENT MÉDICAL",
+    "disclaimerBody": "MedClear est un outil éducatif conçu pour traduire les valeurs de laboratoire en langage simple. Ce résumé NE constitue PAS un diagnostic médical, un avis clinique ou un plan de traitement. Consultez toujours un professionnel de santé qualifié pour toute condition de santé ou résultat de laboratoire.",
+    "sectionTitle": "Résultats de tests extraits et explications",
+    "resultValue": "Valeur du résultat :",
+    "referenceRange": "Plage de référence :",
+    "notSpecified": "Non spécifié",
+    "explanation": "Explication : {text}",
+    "noExplanation": "Aucune explication disponible.",
+    "footer": "Résumé éducatif MedClear — Pas un diagnostic médical"
+  }
+}

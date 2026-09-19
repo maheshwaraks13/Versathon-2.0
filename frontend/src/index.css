@@ -2,41 +2,96 @@
 
 @layer base {
   body {
-    @apply bg-slate-950 text-slate-100 font-sans antialiased min-h-screen selection:bg-teal-500 selection:text-slate-900;
-    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    background-color: #b1ddec;
+    color: #2c444a;
+    font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+    line-height: 1.6;
+  }
+
+  h1, h2, h3, h4, .font-serif {
+    font-family: 'Lora', Georgia, serif;
+    letter-spacing: -0.01em;
   }
 }
 
-/* Glassmorphism custom styles */
-.glass-panel {
-  background: rgba(15, 23, 42, 0.75);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+/* Calming Patient-First Palette Utilities */
+.bg-calm-bg {
+  background-color: #F7FAFB;
 }
 
-.glass-banner {
-  background: rgba(245, 158, 11, 0.08);
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(245, 158, 11, 0.25);
+.bg-calm-card {
+  background-color: #FFFFFF;
 }
 
-.glow-teal {
-  box-shadow: 0 0 25px -5px rgba(20, 184, 166, 0.3);
+.bg-calm-subtle {
+  background-color: #F0F4F6;
 }
 
-/* Custom scrollbar */
+.text-calm-primary {
+  color: #2C3E42;
+}
+
+.text-calm-secondary {
+  color: #6C8287;
+}
+
+.border-calm {
+  border-color: #E8EEF0;
+}
+
+/* Accent: Muted Dusty Teal (#6FA9A3) - Primary Actions & Normal Status */
+.bg-dusty-teal {
+  background-color: #6FA9A3;
+}
+.bg-dusty-teal-hover {
+  background-color: #5C9892;
+}
+.text-dusty-teal {
+  color: #6FA9A3;
+}
+.border-dusty-teal {
+  border-color: #6FA9A3;
+}
+.bg-dusty-teal-light {
+  background-color: #EDF5F4;
+}
+
+/* Alert Accent: Soft Muted Coral (#D98E73) - Reserved ONLY for High/Low results */
+.bg-coral {
+  background-color: #D98E73;
+}
+.text-coral {
+  color: #D98E73;
+}
+.border-coral {
+  border-color: #D98E73;
+}
+.bg-coral-light {
+  background-color: #FBF3F0;
+}
+
+/* Disclaimer Box: Soft Warm Sand (#F0E8DC) */
+.bg-sand {
+  background-color: #F0E8DC;
+}
+.border-sand {
+  border-color: #E4D8C8;
+}
+
+/* Scrollbar */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #0f172a;
+  background: #F7FAFB;
 }
 ::-webkit-scrollbar-thumb {
-  background: #334155;
-  border-radius: 4px;
+  background: #D4E0E3;
+  border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #475569;
+  background: #BDCED2;
 }
