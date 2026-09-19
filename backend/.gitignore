@@ -1,0 +1,42 @@
+# Environment / secrets — NEVER commit
+.env
+
+# Database file (SQLite)
+*.db
+*.sqlite
+*.sqlite3
+
+# Uploaded medical reports (patient data — never commit)
+uploads/
+!uploads/.gitkeep
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+
+# Virtual environments
+venv/
+.venv/
+env/
+.env/
+
+# Pytest
+.pytest_cache/
+htmlcov/
+.coverage
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db

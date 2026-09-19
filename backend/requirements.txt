@@ -1,0 +1,40 @@
+# Medical Report Simplifier — Backend Dependencies
+#
+# Install with:
+#   pip install -r requirements.txt
+#
+# External system requirements:
+#   - Tesseract OCR binary (for scanned PDF/image OCR)
+#     Windows: https://github.com/UB-Mannheim/tesseract/wiki
+#   - Poppler (required by pdf2image for PDF→image conversion)
+#     Windows: https://github.com/oschwartz10612/poppler-windows/releases
+#     Add bin/ directory to your system PATH.
+
+# ── Web framework ──────────────────────────────────────────────────────────────
+fastapi>=0.115.0
+uvicorn[standard]>=0.30.0
+python-multipart>=0.0.9
+
+# ── Database ───────────────────────────────────────────────────────────────────
+sqlalchemy>=2.0.0
+
+# ── Configuration & validation ─────────────────────────────────────────────────
+pydantic>=2.9.0
+pydantic-settings>=2.5.0
+python-dotenv>=1.0.0
+
+# ── PDF text extraction ────────────────────────────────────────────────────────
+pdfplumber>=0.11.0
+
+# ── OCR ───────────────────────────────────────────────────────────────────────
+pytesseract>=0.3.10
+Pillow>=10.0.0
+pdf2image>=1.16.0
+
+# ── AI provider ───────────────────────────────────────────────────────────────
+google-genai>=2.0.0
+
+# ── Testing ───────────────────────────────────────────────────────────────────
+pytest>=8.0.0
+httpx>=0.27.0
+pytest-asyncio>=0.24.0
