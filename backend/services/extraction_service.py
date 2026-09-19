@@ -38,7 +38,8 @@ Return a single valid JSON object with this exact structure:
       "test_name": "<name of the test>",
       "value": "<reported value as a string>",
       "unit": "<unit string or null>",
-      "reference_range": "<reference range string or null>"
+      "reference_range": "<reference range string or null>",
+      "test_date": "<date of this specific test if explicitly stated, or null>"
     }}
   ]
 }}
@@ -48,21 +49,25 @@ STRICT RULES — you MUST follow all of these:
 2. Preserve the original numerical values exactly as they appear.
 3. Preserve units exactly as they appear.
 4. Preserve reference ranges exactly as they appear.
-5. Return null for any field that is missing or unclear.
-6. Do NOT diagnose any disease or medical condition.
-7. Do NOT infer medical conditions from test values.
-8. Do NOT invent or guess missing values, units, or reference ranges.
-9. Do NOT add commentary, advice, or interpretation.
-10. Do NOT recommend any treatment, medication, or lifestyle change.
-11. Do NOT claim that any result confirms or suggests a disease.
-12. If no tests are found, return an empty tests array.
-13. Return ONLY the JSON object — no markdown, no explanation, no code fences.
+5. Extract test_date and report_date ONLY if explicitly printed in the text. Never invent dates.
+6. Return null for any field that is missing or unclear.
+7. Do NOT diagnose any disease or medical condition.
+8. Do NOT infer medical conditions from test values.
+9. Do NOT invent or guess missing values, units, or reference ranges.
+10. Do NOT add commentary, advice, or interpretation.
+11. Do NOT recommend any treatment, medication, or lifestyle change.
+12. Do NOT claim that any result confirms or suggests a disease.
+13. If no tests are found, return an empty tests array.
+14. Return ONLY the JSON object — no markdown, no explanation, no code fences.
 
 Medical report text to extract from:
 \"\"\"
 {report_text}
 \"\"\"
 """
+
+# Maximum character size per chunk to avoid LLM context overflow or truncating long documents
+CHUNK_SIZE = 8000
 
 
 def _get_gemini_client():
@@ -101,34 +106,63 @@ def _clean_ai_response(raw: str) -> str:
     return cleaned.strip()
 
 
-def extract_medical_data(report_text: str) -> Optional[ExtractedReport]:
+def _split_into_chunks(text: str, max_chars: int = CHUNK_SIZE) -> list[str]:
     """
-    Send extracted document text to the AI and return a validated ExtractedReport.
-
-    Args:
-        report_text: Raw text extracted from the uploaded medical document.
-
-    Returns:
-        ExtractedReport on success, or None if extraction/validation fails.
-
-    Raises:
-        RuntimeError: If the AI API call fails entirely.
+    Split text into logical chunks on line boundaries to ensure complete coverage
+    of long documents without cutting off in the middle of a line.
     """
-    if not report_text or not report_text.strip():
-        logger.warning("AI extraction called with empty report text.")
-        return ExtractedReport(report_date=None, tests=[])
+    if len(text) <= max_chars:
+        return [text]
 
-    logger.info("AI extraction started (text length=%d chars)", len(report_text))
+    chunks = []
+    lines = text.splitlines(keepends=True)
+    current_chunk = []
+    current_len = 0
 
-    client = _get_gemini_client()
-    prompt = EXTRACTION_PROMPT.format(report_text=report_text[:12000])  # hard cap
+    for line in lines:
+        if current_len + len(line) > max_chars and current_chunk:
+            chunks.append("".join(current_chunk).strip())
+            current_chunk = [line]
+            current_len = len(line)
+        else:
+            current_chunk.append(line)
+            current_len += len(line)
+
+    if current_chunk:
+        chunks.append("".join(current_chunk).strip())
+
+    return [c for c in chunks if c]
+
+
+def _generate_with_fallback(client, prompt: str) -> str:
+    """Generate content trying primary model first, then fallback models if 503/404/429 occurs."""
+    models_to_try = [settings.AI_MODEL]
+    for m in ["gemini-3.5-flash", "gemini-3.6-flash", "gemini-2.5-pro"]:
+        if m not in models_to_try:
+            models_to_try.append(m)
+
+    last_error = None
+    for model_name in models_to_try:
+        try:
+            response = client.models.generate_content(
+                model=model_name,
+                contents=prompt,
+            )
+            if response and response.text:
+                return response.text
+        except Exception as exc:
+            last_error = exc
+            logger.warning("Model %s failed: %s. Trying next available model.", model_name, exc)
+
+    raise RuntimeError(f"AI API call failed: {last_error}")
+
+
+def _extract_single_chunk(chunk_text: str, client) -> ExtractedReport:
+    """Extract structured data from a single text chunk."""
+    prompt = EXTRACTION_PROMPT.format(report_text=chunk_text)
 
     try:
-        response = client.models.generate_content(
-            model=settings.AI_MODEL,
-            contents=prompt,
-        )
-        raw_response = response.text
+        raw_response = _generate_with_fallback(client, prompt)
         logger.info(
             "AI extraction response received (length=%d chars)", len(raw_response)
         )
@@ -154,11 +188,61 @@ def extract_medical_data(report_text: str) -> Optional[ExtractedReport]:
     # Business validation: filter out entries with no test name
     valid_tests = [t for t in extracted.tests if t.test_name and t.test_name.strip()]
     extracted.tests = valid_tests
+    return extracted
+
+
+def extract_medical_data(report_text: str) -> Optional[ExtractedReport]:
+    """
+    Send extracted document text to the AI and return a validated ExtractedReport.
+    Supports long documents by chunking and combining results without data loss.
+
+    Args:
+        report_text: Raw text extracted from the uploaded medical document.
+
+    Returns:
+        ExtractedReport on success, or None if extraction/validation fails.
+
+    Raises:
+        RuntimeError: If the AI API call fails entirely.
+    """
+    if not report_text or not report_text.strip():
+        logger.warning("AI extraction called with empty report text.")
+        return ExtractedReport(report_date=None, tests=[])
+
+    logger.info("AI extraction started (total text length=%d chars)", len(report_text))
+
+    chunks = _split_into_chunks(report_text)
+    logger.info("Report split into %d chunk(s) for extraction", len(chunks))
+
+    client = _get_gemini_client()
+
+    final_report_date = None
+    all_tests = []
+    seen_tests = set()
+
+    for i, chunk in enumerate(chunks):
+        logger.info("Processing chunk %d/%d (%d chars)", i + 1, len(chunks), len(chunk))
+        chunk_result = _extract_single_chunk(chunk, client)
+
+        if not final_report_date and chunk_result.report_date:
+            final_report_date = chunk_result.report_date
+
+        for test in chunk_result.tests:
+            # Deduplicate identical tests across overlapping chunks
+            key = (
+                test.test_name.strip().lower(),
+                (test.value or "").strip(),
+                (test.unit or "").strip().lower(),
+                (test.test_date or "").strip(),
+            )
+            if key not in seen_tests:
+                seen_tests.add(key)
+                all_tests.append(test)
 
     logger.info(
-        "AI extraction completed: report_date=%s, tests_found=%d",
-        extracted.report_date,
-        len(extracted.tests),
+        "AI extraction completed: report_date=%s, total_tests_found=%d",
+        final_report_date,
+        len(all_tests),
     )
 
-    return extracted
+    return ExtractedReport(report_date=final_report_date, tests=all_tests)

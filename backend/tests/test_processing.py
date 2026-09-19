@@ -259,3 +259,100 @@ def test_document_service_usable_text_detection():
     assert _is_usable_text("") is False
     assert _is_usable_text("   ") is False
     assert _is_usable_text("AB") is False  # below threshold
+
+
+# ── Explanation safety tests ──────────────────────────────────────────────────
+
+def test_is_safe_explanation():
+    """Safety filter should catch diagnostic and treatment phrases."""
+    from services.explanation_service import is_safe_explanation
+
+    assert is_safe_explanation("Hemoglobin carries oxygen in your blood cells.") is True
+    assert is_safe_explanation("This indicates that you have diabetes.") is False
+    assert is_safe_explanation("You should take metformin 500mg daily.") is False
+    assert is_safe_explanation("You are diagnosed with anemia.") is False
+    assert is_safe_explanation("Doctor should prescribe antibiotics.") is False
+
+
+def test_generate_explanation_falls_back_when_ai_is_unsafe():
+    """When AI returns a diagnostic claim, the safe fallback template must be used."""
+    mock_response = MagicMock()
+    mock_response.text = "You are diagnosed with severe hypoglycemia. You must take glucose tablets immediately."
+
+    mock_client = MagicMock()
+    mock_client.models.generate_content.return_value = mock_response
+
+    with patch("services.explanation_service._get_gemini_client", return_value=mock_client):
+        from services.explanation_service import generate_explanation
+        explanation = generate_explanation("Glucose", "45", "mg/dL", "70 - 99")
+
+    # The unsafe AI explanation must NOT be returned
+    assert "diagnosed with" not in explanation.lower()
+    assert "glucose tablets" not in explanation.lower()
+    # The fallback template must be returned
+    assert "measurement from your medical report" in explanation
+
+
+# ── Long document chunking test ───────────────────────────────────────────────
+
+def test_extraction_service_chunks_long_documents():
+    """Long documents exceeding chunk size must be chunked and combined without losing tests."""
+    mock_response_1 = MagicMock()
+    mock_response_1.text = json.dumps({
+        "report_date": "2024-05-01",
+        "tests": [
+            {"test_name": "Test1", "value": "10", "unit": "mg/dL", "reference_range": "5 - 15", "test_date": "2024-05-01"},
+        ],
+    })
+    mock_response_2 = MagicMock()
+    mock_response_2.text = json.dumps({
+        "report_date": None,
+        "tests": [
+            {"test_name": "Test2", "value": "20", "unit": "U/L", "reference_range": "10 - 40", "test_date": None},
+        ],
+    })
+
+    mock_client = MagicMock()
+    mock_client.models.generate_content.side_effect = [mock_response_1, mock_response_2]
+
+    long_text = ("Line with some medical report content.\n" * 300)
+
+    with patch("services.extraction_service._get_gemini_client", return_value=mock_client):
+        from services.extraction_service import extract_medical_data
+        result = extract_medical_data(long_text)
+
+    assert result.report_date == "2024-05-01"
+    assert len(result.tests) == 2
+    names = [t.test_name for t in result.tests]
+    assert "Test1" in names
+    assert "Test2" in names
+
+
+# ── Pipeline rollback test ────────────────────────────────────────────────────
+
+def test_pipeline_transaction_rollback_on_failure(db_session):
+    """If processing fails midway, partial test results must be rolled back and cleaned."""
+    import models
+    from services.processing_pipeline import process_report
+
+    report = models.Report(
+        file_name="failing_report.pdf",
+        file_path="nonexistent_file_path.pdf",
+        file_type="pdf",
+        processing_status="uploaded",
+    )
+    db_session.add(report)
+    db_session.commit()
+    db_session.refresh(report)
+
+    report_id = report.id
+    # Process will fail because file does not exist
+    process_report(report_id, db_session)
+
+    updated_report = db_session.query(models.Report).filter(models.Report.id == report_id).first()
+    assert updated_report is not None
+    assert updated_report.processing_status == "failed"
+    assert updated_report.error_message is not None
+    # No test results should remain
+    tests = db_session.query(models.TestResult).filter(models.TestResult.report_id == report_id).all()
+    assert len(tests) == 0

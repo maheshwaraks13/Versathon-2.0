@@ -37,7 +37,16 @@ def make_small_png_bytes() -> bytes:
     )
 
 
+from unittest.mock import MagicMock
+
+
 # ── Upload tests ──────────────────────────────────────────────────────────────
+
+@pytest.fixture(autouse=True)
+def mock_background_processing(monkeypatch):
+    """In upload unit tests, prevent firing background AI pipeline calls."""
+    monkeypatch.setattr("services.processing_pipeline.process_report", MagicMock())
+
 
 def test_upload_valid_pdf(client, tmp_path, monkeypatch):
     """A valid PDF should be accepted and return report_id."""
@@ -132,3 +141,15 @@ def test_upload_no_file(client):
     """Request with no file should be rejected."""
     response = client.post("/api/reports/upload")
     assert response.status_code == 422  # FastAPI validation error
+
+
+def test_upload_disguised_file_rejected(client, tmp_path, monkeypatch):
+    """A text file disguised with a .pdf extension should be rejected by content signature."""
+    monkeypatch.setattr("config.settings.UPLOAD_DIR", str(tmp_path))
+    fake_pdf_content = b"This is plain text claiming to be a PDF."
+    response = client.post(
+        "/api/reports/upload",
+        files={"file": ("fake.pdf", io.BytesIO(fake_pdf_content), "application/pdf")},
+    )
+    assert response.status_code == 400
+    assert "PDF format" in response.text

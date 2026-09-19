@@ -17,11 +17,14 @@ class Settings(BaseSettings):
 
     # AI provider
     AI_API_KEY: str = ""
-    AI_MODEL: str = "gemini-1.5-flash"
+    AI_MODEL: str = "gemini-3.5-flash"
 
     # File storage
     UPLOAD_DIR: str = "uploads"
     MAX_FILE_SIZE_MB: int = 20
+
+    # CORS settings (comma-separated list of origins or * for all)
+    CORS_ORIGINS: str = "*"
 
     # Allowed file extensions and MIME types
     ALLOWED_EXTENSIONS: set = {"pdf", "jpg", "jpeg", "png"}
@@ -31,6 +34,13 @@ class Settings(BaseSettings):
         "image/jpg",
         "image/png",
     }
+
+    @property
+    def cors_origins_list(self) -> list[str]:
+        """Return CORS origins parsed as a list."""
+        if not self.CORS_ORIGINS or self.CORS_ORIGINS.strip() == "*":
+            return ["*"]
+        return [o.strip() for o in self.CORS_ORIGINS.split(",") if o.strip()]
 
 
 settings = Settings()

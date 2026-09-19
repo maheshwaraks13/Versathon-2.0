@@ -25,6 +25,7 @@ class ExtractedTest(BaseModel):
     value: Optional[str] = None
     unit: Optional[str] = None
     reference_range: Optional[str] = None
+    test_date: Optional[str] = None
 
     @field_validator("test_name", mode="before")
     @classmethod

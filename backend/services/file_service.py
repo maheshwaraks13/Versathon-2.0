@@ -52,6 +52,34 @@ def validate_file(file: UploadFile) -> None:
         )
 
 
+def _validate_content_signature(content: bytes, ext: str) -> None:
+    """
+    Verify magic bytes match the claimed file extension.
+    Prevents disguised files (e.g. executables or scripts renamed to .pdf or .png).
+    """
+    if ext == "pdf":
+        # Standard PDF starts with %PDF- (within first 1024 bytes)
+        if b"%PDF-" not in content[:1024]:
+            raise HTTPException(
+                status_code=400,
+                detail="File content does not match PDF format (missing %PDF- header).",
+            )
+    elif ext in ("jpg", "jpeg"):
+        # JPEG begins with Start of Image (SOI) marker 0xFF, 0xD8, 0xFF
+        if not content.startswith(b"\xff\xd8\xff"):
+            raise HTTPException(
+                status_code=400,
+                detail="File content does not match JPEG image format.",
+            )
+    elif ext == "png":
+        # PNG begins with standard 8-byte signature
+        if not content.startswith(b"\x89PNG\r\n\x1a\n"):
+            raise HTTPException(
+                status_code=400,
+                detail="File content does not match PNG image format.",
+            )
+
+
 async def save_upload(file: UploadFile) -> tuple[str, str, str]:
     """
     Read and save the uploaded file to UPLOAD_DIR.
@@ -60,7 +88,7 @@ async def save_upload(file: UploadFile) -> tuple[str, str, str]:
         (original_filename, internal_storage_path, file_extension)
 
     Raises:
-        HTTPException: on empty file or oversized file.
+        HTTPException: on empty file, oversized file, or mismatched content signature.
     """
     original_filename = file.filename or "unknown"
     ext = _get_extension(original_filename)
@@ -81,6 +109,9 @@ async def save_upload(file: UploadFile) -> tuple[str, str, str]:
                 f"the maximum allowed size of {settings.MAX_FILE_SIZE_MB} MB."
             ),
         )
+
+    # Validate file content signature against claimed extension
+    _validate_content_signature(content, ext)
 
     # Generate a UUID-based internal filename — never use original filename as path
     internal_name = f"{uuid.uuid4().hex}.{ext}"

@@ -124,7 +124,7 @@ def process_report(report_id: int, db: Session) -> None:
                 value=test.value,
                 unit=test.unit,
                 reference_range=test.reference_range,
-                test_date=None,           # test_date not extracted at this stage
+                test_date=test.test_date or extracted.report_date,
                 explanation=explanation,
                 extraction_confidence=None,  # no reliable confidence from Gemini
             )
@@ -140,12 +140,17 @@ def process_report(report_id: int, db: Session) -> None:
         logger.info("Processing completed for report_id=%d", report_id)
 
     except Exception as exc:
-        # Any unhandled exception → mark as failed with useful error message
+        # Any unhandled exception → discard pending objects, clean partial state, mark as failed
         logger.error("Processing failed for report_id=%d: %s", report_id, exc)
         try:
-            report.processing_status = "failed"
-            report.error_message = str(exc)
-            db.commit()
+            db.expunge_all()
+            # Clean up any partial test results for this report to prevent misleading state
+            db.query(models.TestResult).filter(models.TestResult.report_id == report_id).delete()
+            report = db.query(models.Report).filter(models.Report.id == report_id).first()
+            if report:
+                report.processing_status = "failed"
+                report.error_message = str(exc)
+                db.commit()
         except Exception as db_exc:
             logger.error(
                 "Failed to save error status for report_id=%d: %s", report_id, db_exc

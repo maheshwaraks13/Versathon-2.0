@@ -14,11 +14,46 @@ Rules:
 """
 
 import logging
+import re
 from typing import Optional
 
 from config import settings
 
 logger = logging.getLogger(__name__)
+
+# Patterns that violate non-diagnostic / non-prescriptive safety rules
+UNSAFE_EXPLANATION_PATTERNS = [
+    re.compile(r"\byou have\b", re.IGNORECASE),
+    re.compile(r"\byou suffer from\b", re.IGNORECASE),
+    re.compile(r"\bdiagnosed with\b", re.IGNORECASE),
+    re.compile(r"\bdiagnosis\b", re.IGNORECASE),
+    re.compile(r"\bprescrib", re.IGNORECASE),
+    re.compile(r"\bmedication\b", re.IGNORECASE),
+    re.compile(r"\byou should take\b", re.IGNORECASE),
+    re.compile(r"\btreatment plan\b", re.IGNORECASE),
+    re.compile(r"\brecommend(?:ed)? treatment\b", re.IGNORECASE),
+    re.compile(r"\bconfirms? (?:that )?you have\b", re.IGNORECASE),
+    re.compile(r"\bindicates? (?:that )?you have\b", re.IGNORECASE),
+]
+
+
+def is_safe_explanation(text: str) -> bool:
+    """
+    Validate that an AI-generated explanation contains no diagnostic claims,
+    prescriptions, or treatment recommendations.
+    """
+    if not text or not text.strip():
+        return False
+
+    for pattern in UNSAFE_EXPLANATION_PATTERNS:
+        if pattern.search(text):
+            logger.warning(
+                "Unsafe content detected in AI explanation (matched '%s').",
+                pattern.pattern,
+            )
+            return False
+
+    return True
 
 
 # ── Reference range status ─────────────────────────────────────────────────────
@@ -184,6 +219,29 @@ def _fallback_explanation(
     )
 
 
+def _generate_with_fallback(client, prompt: str) -> str:
+    """Generate explanation using primary model, trying fallbacks if demand spikes occur."""
+    models_to_try = [settings.AI_MODEL]
+    for m in ["gemini-3.5-flash", "gemini-3.6-flash", "gemini-2.5-pro"]:
+        if m not in models_to_try:
+            models_to_try.append(m)
+
+    last_error = None
+    for model_name in models_to_try:
+        try:
+            response = client.models.generate_content(
+                model=model_name,
+                contents=prompt,
+            )
+            if response and response.text:
+                return response.text
+        except Exception as exc:
+            last_error = exc
+            logger.warning("Explanation model %s failed: %s. Trying next available model.", model_name, exc)
+
+    raise RuntimeError(f"AI explanation call failed across all models: {last_error}")
+
+
 def generate_explanation(
     test_name: str,
     value: Optional[str],
@@ -227,16 +285,23 @@ def generate_explanation(
             reference_range=range_display,
             range_status=range_status,
         )
-        response = client.models.generate_content(
-            model=settings.AI_MODEL,
-            contents=prompt,
-        )
-        explanation = response.text.strip()
+        raw_text = _generate_with_fallback(client, prompt)
+        explanation = raw_text.strip()
 
         if not explanation:
             raise ValueError("Empty AI explanation response")
 
-        logger.info("AI explanation generated for: %s", test_name)
+        # Safety validation layer: do not allow diagnostic claims or treatment advice
+        if not is_safe_explanation(explanation):
+            logger.warning(
+                "AI explanation for '%s' failed safety validation. Falling back to template.",
+                test_name,
+            )
+            return _fallback_explanation(
+                test_name, value, unit, reference_range, range_status
+            )
+
+        logger.info("AI explanation generated and validated for: %s", test_name)
         return explanation
 
     except Exception as exc:
