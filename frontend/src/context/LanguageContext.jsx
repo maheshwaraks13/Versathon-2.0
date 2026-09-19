@@ -4,18 +4,18 @@ import en from '../locales/en.json';
 import hi from '../locales/hi.json';
 import ta from '../locales/ta.json';
 import te from '../locales/te.json';
-import es from '../locales/es.json';
-import fr from '../locales/fr.json';
+import kn from '../locales/kn.json';
+import ml from '../locales/ml.json';
 
-const LOCALES = { en, hi, ta, te, es, fr };
+const LOCALES = { en, hi, ta, te, kn, ml };
 
 export const SUPPORTED_LANGUAGES = [
   { code: 'en', label: 'English' },
   { code: 'hi', label: 'हिन्दी' },
   { code: 'ta', label: 'தமிழ்' },
   { code: 'te', label: 'తెలుగు' },
-  { code: 'es', label: 'Español' },
-  { code: 'fr', label: 'Français' }
+  { code: 'kn', label: 'ಕನ್ನಡ' },
+  { code: 'ml', label: 'മലയാളം' }
 ];
 
 const LanguageContext = createContext(null);

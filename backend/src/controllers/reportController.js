@@ -12,7 +12,7 @@ export const analyzeReport = async (req, res) => {
     }
 
     // Sanitize language code — only allow known codes, default to 'en'
-    const VALID_LANGS = ['en', 'hi', 'ta', 'te', 'es', 'fr'];
+    const VALID_LANGS = ['en', 'hi', 'ta', 'te', 'kn', 'ml'];
     const lang = VALID_LANGS.includes(language) ? language : 'en';
 
     console.log('[API] Analyzing medical report text length:', text.length, '| Language:', lang);

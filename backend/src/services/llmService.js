@@ -14,8 +14,8 @@ function buildSystemPrompt(language = 'en') {
     hi: 'Hindi',
     ta: 'Tamil',
     te: 'Telugu',
-    es: 'Spanish',
-    fr: 'French'
+    kn: 'Kannada',
+    ml: 'Malayalam'
   };
   const langName = LANGUAGE_NAMES[language] || 'English';
   const langInstruction = langName !== 'English'
