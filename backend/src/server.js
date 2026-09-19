@@ -3,6 +3,8 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import dbAdapter from './db/index.js';
 import reportRoutes from './routes/reportRoutes.js';
+import authRoutes from './routes/authRoutes.js';
+import historyRoutes from './routes/historyRoutes.js';
 
 dotenv.config();
 
@@ -13,7 +15,9 @@ app.use(cors());
 app.use(express.json());
 
 // Routes
+app.use('/api/auth', authRoutes);
 app.use('/api/reports', reportRoutes);
+app.use('/api/history', historyRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', service: 'MedClear Backend API' });

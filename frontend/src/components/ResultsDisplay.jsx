@@ -16,13 +16,30 @@ import {
   ChevronUp,
   BookOpen,
   Download,
-  FileText
+  FileText,
+  BookmarkPlus,
+  Check,
+  TrendingUp
 } from 'lucide-react';
 import { generateReportPDF } from '../utils/pdfGenerator';
+import { useAuth } from '../context/AuthContext';
 
-export default function ResultsDisplay({ results, reportDate, isLoading, error, rawJson }) {
+export default function ResultsDisplay({
+  results,
+  reportDate,
+  rawText,
+  isLoading,
+  error,
+  rawJson,
+  onViewHistory,
+  onRequireAuth
+}) {
+  const { token, isAuthenticated } = useAuth();
   const [showRawJson, setShowRawJson] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
+  const [saveError, setSaveError] = useState(null);
 
   const handleExportPDF = () => {
     setIsExporting(true);
@@ -33,6 +50,45 @@ export default function ResultsDisplay({ results, reportDate, isLoading, error, 
       alert('Failed to generate PDF. Please try again.');
     } finally {
       setIsExporting(false);
+    }
+  };
+
+  const handleSaveToHistory = async () => {
+    if (!isAuthenticated) {
+      if (onRequireAuth) {
+        onRequireAuth('login', 'Please sign in to save this analyzed report to your private history.');
+      }
+      return;
+    }
+
+    setIsSaving(true);
+    setSaveError(null);
+
+    try {
+      const res = await fetch('http://localhost:5000/api/reports/save', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          report_date: reportDate || new Date().toISOString().split('T')[0],
+          raw_text: rawText || '',
+          results: results
+        })
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Failed to save report to database.');
+      }
+
+      setIsSaved(true);
+    } catch (err) {
+      console.error('[Save Error]:', err);
+      setSaveError(err.message || 'Failed to save report');
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -95,18 +151,17 @@ export default function ResultsDisplay({ results, reportDate, isLoading, error, 
   const highCount = results.filter(r => r.status === 'high').length;
   const lowCount = results.filter(r => r.status === 'low').length;
   const normalCount = results.filter(r => r.status === 'normal').length;
-  const unknownCount = results.filter(r => r.status === 'unknown').length;
 
   return (
     <div className="w-full space-y-6">
-      {/* Overview Banner with Export PDF Button */}
+      {/* Overview Banner with Save to History & Export PDF Buttons */}
       <div className="glass-panel rounded-2xl p-6 border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center space-x-3">
             <h3 className="text-lg font-bold text-white">Extracted Lab Panel</h3>
             {reportDate && (
-              <span className="flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full bg-slate-800 text-teal-300 border border-slate-700">
-                <Calendar className="w-3.5 h-3.5" /> Report Date: {reportDate}
+              <span className="flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full bg-slate-800 text-teal-300 border border-slate-700 font-mono">
+                <Calendar className="w-3.5 h-3.5" /> Date: {reportDate}
               </span>
             )}
           </div>
@@ -135,21 +190,71 @@ export default function ResultsDisplay({ results, reportDate, isLoading, error, 
             )}
           </div>
 
-          {/* Export PDF Button */}
-          <button
-            type="button"
-            onClick={handleExportPDF}
-            disabled={isExporting}
-            className="px-4 py-2 rounded-xl bg-teal-500/10 hover:bg-teal-500/20 text-teal-300 border border-teal-500/30 text-xs font-semibold flex items-center gap-2 transition-all shadow-md active:scale-95 cursor-pointer"
-            title="Download printable PDF summary"
-          >
-            <Download className="w-4 h-4 text-teal-400" />
-            <span>{isExporting ? 'Generating PDF...' : 'Export as PDF'}</span>
-          </button>
+          {/* Action Buttons */}
+          <div className="flex items-center gap-2">
+            {/* Save Report to History Button */}
+            {isSaved ? (
+              <div className="flex items-center gap-2">
+                <span className="px-3.5 py-2 rounded-xl bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-xs font-bold flex items-center gap-1.5 shadow-sm">
+                  <Check className="w-4 h-4 text-emerald-400" />
+                  <span>Saved to History</span>
+                </span>
+                {onViewHistory && (
+                  <button
+                    type="button"
+                    onClick={onViewHistory}
+                    className="px-3 py-2 rounded-xl bg-teal-500/20 hover:bg-teal-500/30 text-teal-300 border border-teal-500/40 text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer"
+                  >
+                    <TrendingUp className="w-3.5 h-3.5" />
+                    <span>View Trends</span>
+                  </button>
+                )}
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={handleSaveToHistory}
+                disabled={isSaving}
+                className="px-4 py-2 rounded-xl bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-400 hover:to-cyan-400 text-slate-950 text-xs font-bold flex items-center gap-1.5 transition-all shadow-md shadow-teal-500/20 active:scale-95 cursor-pointer disabled:opacity-50"
+                title="Save this report to your private medical history"
+              >
+                {isSaving ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    <span>Saving...</span>
+                  </>
+                ) : (
+                  <>
+                    <BookmarkPlus className="w-4 h-4" />
+                    <span>Save to History</span>
+                  </>
+                )}
+              </button>
+            )}
+
+            {/* Export PDF Button */}
+            <button
+              type="button"
+              onClick={handleExportPDF}
+              disabled={isExporting}
+              className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer"
+              title="Download printable PDF summary"
+            >
+              <Download className="w-3.5 h-3.5 text-slate-400" />
+              <span>{isExporting ? 'Exporting...' : 'PDF'}</span>
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Repeated Short Medical Disclaimer Directly Above Results List */}
+      {saveError && (
+        <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-300 text-xs flex items-center gap-2">
+          <AlertTriangle className="w-4 h-4 text-red-400 shrink-0" />
+          <span>{saveError}</span>
+        </div>
+      )}
+
+      {/* Short Medical Disclaimer Directly Above Results List */}
       <div className="w-full rounded-xl bg-amber-500/10 border border-amber-500/25 p-3.5 text-amber-300 text-xs flex items-center gap-3">
         <ShieldAlert className="w-4 h-4 text-amber-400 shrink-0" />
         <p className="leading-snug">
